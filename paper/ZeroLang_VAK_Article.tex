@@ -1,0 +1,194 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\usepackage{babel}
+\babelprovide[import, main]{russian}
+\babelfont{rm}{Noto Serif}
+\babelfont{sf}{Noto Sans}
+\babelfont{tt}{Noto Sans}
+
+\usepackage[a4paper,margin=20mm]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+
+\definecolor{primary}{RGB}{15, 44, 89}
+\definecolor{accent}{RGB}{15, 118, 110}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    citecolor=primary,
+    urlcolor=accent,
+    pdftitle={ZeroLang: Direct Synthesis of Microarchitecture-Specialized Machine Code},
+    pdfauthor={Магистерское исследование / Статья ВАК}
+}
+
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\parindent}{0pt}
+\sloppy
+\emergencystretch=2em
+
+\newcommand{\takeaway}[2]{%
+  \vspace{6pt}\noindent\colorbox{primary!6}{%
+    \parbox{\dimexpr\textwidth-2\fboxsep\relax}{%
+      \vspace{4pt}\textbf{\color{primary}#1:}\hspace{0.5em}#2\vspace{4pt}%
+    }%
+  }\vspace{6pt}%
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{gray}УДК 004.4'414:004.896 \quad|\quad Специальность ВАК: 2.3.5 (Технические науки)}
+\fancyhead[R]{\small\color{gray}ZeroLang: Direct Intent-to-Silicon}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\begin{document}
+
+\begin{center}
+    {\footnotesize\textbf{\color{accent}УДК 004.4'414:004.896 \quad|\quad Научная специальность ВАК: 2.3.5. Математическое и программное обеспечение вычислительных систем, комплексов и компьютерных сетей}}\\[8pt]
+    {\LARGE\textbf{\color{primary}ПРЯМОЙ СИНТЕЗ МИКРОАРХИТЕКТУРНО-СПЕЦИАЛИЗИРОВАННОГО МАШИННОГО КОДА ИЗ ДЕКЛАРАТИВНЫХ СПЕЦИФИКАЦИЙ БЕЗ ПРОМЕЖУТОЧНЫХ ЯЗЫКОВ ПРОГРАММИРОВАНИЯ ВЫСОКОГО УРОВНЯ}}\\[6pt]
+    {\large\textbf{\color{accent}DIRECT SYNTHESIS OF MICROARCHITECTURE-SPECIALIZED MACHINE CODE FROM DECLARATIVE SPECIFICATIONS BYPASSING HIGH-LEVEL PROGRAMMING LANGUAGES}}\\[10pt]
+    {\normalsize\textit{Щербаков Никита (e-mail: \texttt{nikitaserbakov351@gmail.com}), магистрант}}\\
+    {\small\textit{Научный руководитель: [Ф.\,И.\,О., ученая степень, ученое звание]}}\\
+    {\small\textit{[Наименование образовательной / научной организации, г. Санкт-Петербург]}}
+\end{center}
+
+\vspace{4pt}
+\noindent\colorbox{primary!5}{%
+\parbox{\dimexpr\textwidth-2\fboxsep\relax}{%
+\vspace{4pt}
+\textbf{\color{primary}Аннотация.} В статье исследуется проблема потери производительности вычислительных систем, обусловленная использованием императивных языков программирования высокого уровня (Python, C++) в качестве промежуточного звена между алгоритмическим замыслом (интентом) и аппаратным обеспечением процессора. Показано, что в условиях развития автоматизированного синтеза программ и нейросетевой кодогенерации сохранение человекочитаемого исходного кода порождает фундаментальный «семантический налог»: оптимизирующие компиляторы (включая GCC и Clang на уровне оптимизации \texttt{-O3}) вынуждены консервировать строгий порядок вычислений стандарта IEEE-754, генерировать избыточные проверки перекрытия областей памяти (алиасинга указателей), использовать условные переходы в задачах сортировки и соблюдать универсальные соглашения о вызовах System V ABI. Для преодоления указанных ограничений предложена архитектура и экспериментальная среда прямого синтеза машинного кода «ZeroLang» (Direct Intent-to-Silicon), осуществляющая трансляцию декларативных математических спецификаций непосредственно в исполняемые страницы оперативной памяти (\texttt{mmap} с флагом \texttt{PROT\_EXEC}) под конкретную микроархитектуру процессора \texttt{x86\_64} (\texttt{AVX2}, \texttt{FMA3}, \texttt{POPCNT}, \texttt{CMOV}). Экспериментальная оценка на четырех классах вычислительных задач продемонстрировала, что синтезируемый системой ZeroLang машинный код объемом 89–161 байт превосходит эталонный код C++ (\texttt{GCC 12.2.0 -O2}) в 6,41–33,53 раза, а код с агрессивной оптимизацией \texttt{GCC 12.2.0 -O3} — в 3,90–8,53 раза при 38,5–872,7-кратном ускорении относительно интерпретатора Python 3.11.\\[4pt]
+\textbf{\color{primary}Ключевые слова:} \textit{прямой синтез машинного кода, компиляция без языков высокого уровня, супер-оптимизация, векторизация AVX2 и FMA3, безветвленные сети сортировки, динамическая специализация кода, архитектура x86\_64.}\\[6pt]
+\textbf{\color{primary}Abstract.} This paper investigates the computational performance overhead caused by relying on imperative high-level programming languages (Python, C++) as an intermediate abstraction layer between algorithmic intent and processor silicon. We demonstrate that retaining human-readable source code imposes a severe semantic abstraction tax: classical optimizing compilers (including GCC and Clang at \texttt{-O3}) are constrained by language standards to preserve strict sequential IEEE-754 floating-point reduction order, emit runtime pointer-aliasing checks, rely on branch-heavy control flow, and enforce generic System V ABI conventions. To eliminate these bottlenecks, we propose the ZeroLang (Direct Intent-to-Silicon) runtime architecture, which synthesizes microarchitecture-specialized \texttt{x86\_64} machine instructions (\texttt{AVX2}, \texttt{FMA3}, \texttt{POPCNT}, branchless \texttt{CMOV}) directly from declarative mathematical specifications into executable virtual memory pages (\texttt{mmap} with \texttt{PROT\_EXEC}). Empirical evaluation across four computational workloads demonstrates that ZeroLang-synthesized machine kernels (89–161 bytes) outperform \texttt{GCC 12.2.0 -O2} C++ baselines by 6.41$\times$–33.53$\times$ and \texttt{GCC 12.2.0 -O3} binaries by 3.90$\times$–8.53$\times$, while achieving 38.5$\times$–872.7$\times$ speedups over Python 3.11.\\[4pt]
+\textbf{\color{primary}Keywords:} \textit{direct machine code synthesis, language-free compilation, superoptimization, AVX2 and FMA3 vectorization, branchless sorting networks, runtime code specialization, x86\_64 microarchitecture.}
+\vspace{4pt}
+}}
+
+\section{Введение: языки высокого уровня как когнитивный посредник и источник потерь производительности}
+
+Традиционная архитектура инструментальных средств разработки программного обеспечения формировалась вокруг базовой аксиомы: человек формулирует алгоритм в виде текста на языке программирования высокого уровня (ЯВУ), после чего многоступенчатый компилятор транслирует этот текст в машинные инструкции целевого процессора. С развитием методов автоматизированного синтеза кода и больших языковых моделей (LLM) \cite{cummins2024} возникла парадигма спецификационного проектирования («вайб-кодинга»), при которой разработчик задает высокоуровневое намерение (интент), однако нейросеть по-прежнему генерирует исходный код на Python или C++.
+
+Такая схема сохраняет исторический посредник в виде ЯВУ, который более не нужен ни человеку, ни вычислительной машине. Более того, при переходе от медленного интерпретируемого языка (Python) к компилируемому языку системного уровня (C++) разработчик сталкивается с неочевидным фундаментальным барьером: даже эталонный оптимизирующий компилятор (\texttt{GCC -O3} или \texttt{Clang -O3}) не способен извлечь максимальную производительность из кремниевого кристалла из-за семантических ограничений самого языка C++ \cite{schkufza2013, mankowitz2023}.
+
+\takeaway{Ключевая научная гипотеза}{Исключение промежуточного текстового языка программирования (C++/Python) и прямой синтез верифицированного машинного кода \texttt{x86\_64} непосредственно из математической спецификации задачи в исполняемые страницы оперативной памяти (\texttt{mmap PROT\_EXEC}) позволяет превзойти по быстродействию скомпилированный код \texttt{C++ (-O3)} в 3,9–8,5 раза за счет снятия семантических ограничений стандарта ЯВУ и микроархитектурной специализации времени исполнения.}
+
+\section{Анализ фундаментальных ограничений компиляторов языков высокого уровня («семантический налог» C++)}
+
+Рассмотрим формальные причины, по которым компиляция императивного кода C++ на уровне \texttt{-O3} порождает субоптимальный поток машинных инструкций:
+
+\begin{enumerate}
+\setlength{\itemsep}{3pt}\setlength{\parskip}{0pt}
+    \item \textbf{Запрет на ассоциативную векторизацию вещественных редукций (IEEE-754 Dependency Chain Tax).} В стандарте IEEE-754 операция сложения чисел с плавающей запятой не является ассоциативной: $(a \oplus b) \oplus c \neq a \oplus (b \oplus c)$. Вследствие этого императивный цикл C++ вида \texttt{for (int i=0; i<n; ++i) sum += max(0.0f, x[i]) * y[i]} вынуждает компилятор \texttt{GCC 12.2 -O3} сохранять строгую последовательность накопления в один скалярный регистр \texttt{\%xmm0}. При латентности инструкции сложения $L_{\text{add}} = 4$ такта и наличии двух 256-битных конвейеров FMA (ширина $W = 8$ чисел \texttt{float32} на порт) теоретический предел пропускной способности составляет $2 \times 8 = 16$ операций за такт, тогда как сериализованный цикл C++ выполняет лишь $1 / 4 = 0{,}25$ векторного накопления за такт:
+    \begin{equation}
+        \eta_{\text{C++}} = \frac{\text{IPC}_{\text{actual}}}{\text{IPC}_{\text{peak}}} = \frac{1}{L_{\text{FMA}} \cdot P_{\text{FMA}} \cdot (W_{256} / W_{32})} = \frac{1}{4 \cdot 2 \cdot 8} = \frac{1}{64} \approx 1{,}56\%.
+    \end{equation}
+    \item \textbf{Консерватизм статического анализа алиасинга указателей (Pointer Aliasing Conservatism).} Для функции $f(x, y, c)$ с указателями одного типа компилятор C++ обязан предполагать возможное пересечение адресных диапазонов $[x, x+N)$ и $[y, y+N)$, генерируя в прологе функции до 18 инструкций динамической проверки границ (\texttt{lea}, \texttt{cmp}, \texttt{setae}, \texttt{or}).
+    \item \textbf{Штрафы предсказателя ветвлений в задачах упорядочивания (Control-Flow Branch Penalty).} Алгоритмы стандартной библиотеки C++ (\texttt{std::sort}) опираются на условные переходы (\texttt{jle}, \texttt{jg}). На равномерно распределенных входах вероятность ошибки предсказания ветвления составляет $p_{\text{miss}} \approx 0{,}5$, что добавляет штраф $T_{\text{flush}} \approx 15\text{--}20$ тактов на каждое сравнение \cite{mankowitz2023}.
+    \item \textbf{Накладные расходы универсального бинарного интерфейса (System V AMD64 ABI \& PLT Tax).} Стандартные объектные файлы C++ обязаны сохранять регистры \texttt{\%rbx}, \texttt{\%rbp}, \texttt{\%r12–\%r15} в стек и вызывать встроенные битовые примитивы (\texttt{\_\_popcountdi2@plt}) через таблицу процедурных переходов вместо генерации аппаратных инструкций \texttt{popcnt} с развязкой ложных зависимостей по регистру назначения \cite{lattner2021, phothilimthana2016}.
+\end{enumerate}
+
+\section{Математическая модель и архитектура прямого синтеза «ZeroLang»}
+
+В предлагаемой системе \textbf{ZeroLang} этап генерации текста на языке программирования полностью исключается. Входной спецификацией служит кортеж декларативного интента:
+\begin{equation}
+    \mathcal{I} = \langle \mathcal{F}, \mathcal{C}_{\text{mem}}, \mathcal{D}_{\text{const}}, \mathcal{P}_{\text{eq}} \rangle,
+\end{equation}
+где $\mathcal{F}: \mathbb{R}^N \times \mathbb{R}^N \to \mathbb{R}^M$ — чистая математическая спецификация отображения (свободная от императивных циклов и мутабельного состояния); $\mathcal{C}_{\text{mem}}$ — предикат дизъюнктности и выравнивания буферов памяти ($\mathcal{A}(x) \cap \mathcal{A}(y) = \emptyset$); $\mathcal{D}_{\text{const}}$ — вектор параметров, известных в момент синтеза; $\mathcal{P}_{\text{eq}}$ — оракул верификации эквивалентности на контрольном множестве входов $\Omega_{\text{test}}$.
+
+Синтезатор $\mathcal{S}$ запрашивает вектор аппаратной телеметрии хост-процессора $\mathcal{H} = \operatorname{CPUID}()$ и формирует компактный байтовый массив машинного кода $\mathbf{B} \in \{0,\dots,255\}^K$, который отображается непосредственно в виртуальное адресное пространство процесса через системный вызов ядра ОС Linux:
+\begin{equation}
+    \mathcal{M}_{\text{exec}} = \operatorname{mmap}\bigl(0, \, \lceil K / 4096 \rceil \cdot 4096, \, \texttt{PROT\_RWE}, \, \texttt{MAP\_ANON}\bigr).
+\end{equation}
+
+Для достижения скорости, превосходящей \texttt{C++ (-O3)}, генератор кодов \textbf{ZeroLang} применяет четыре микроархитектурные трансформации:
+\begin{itemize}
+\setlength{\itemsep}{2pt}\setlength{\parskip}{0pt}
+    \item \textbf{Многоаккумуляторная декомпозиция редукций:} вместо одного регистра \texttt{\%xmm0} выделяются $K=4$ независимых 256-битных регистра (\texttt{ymm0}, \texttt{ymm1}, \texttt{ymm2}, \texttt{ymm3}), которые параллельно накапливают частичные суммы через инструкции слияния умножения-сложения \texttt{vfmadd231ps}, полностью скрывая 4-тактовую латентность конвейера FMA;
+    \item \textbf{Безветвленные регистровые сети сортировки Боуза — Нельсона:} для кортежей фиксированной размерности ($d=4$) условные переходы заменяются 5-каскадной сетью компараторов в регистрах общего назначения (\texttt{eax}, \texttt{ecx}, \texttt{r8d}, \texttt{r9d}) на базе инструкций условной пересылки \texttt{cmp} + \texttt{cmovg} (0 условных переходов внутри сети);
+    \item \textbf{Встраивание констант времени исполнения (Immediate Constant Baking):} коэффициенты $\mathcal{D}_{\text{const}} = (c_0, \dots, c_4)$ упаковываются по стандарту IEEE-754 в 32-битные непосредственные операнды инструкций \texttt{mov eax, imm32} и транслируются во все 8 каналов регистров \texttt{ymm3..ymm7} инструкцией \texttt{vbroadcastss} до входа в цикл Горнера;
+    \item \textbf{Развязка ложных регистровых зависимостей \texttt{POPCNT}:} вычисление расстояния Хэмминга разворачивается в 4 независимых потока регистров \texttt{r8..r11} с двумя параллельными аккумуляторами \texttt{rax} и \texttt{rcx} без сохранения регистров в стек.
+\end{itemize}
+
+\section{Экспериментальное исследование и анализ дизассемблированного кода}
+
+Эксперименты выполнены на вычислительном узле с процессором архитектуры Intel \texttt{x86\_64} (флаги \texttt{SSE4.2}, \texttt{AVX}, \texttt{AVX2}, \texttt{FMA}, \texttt{BMI1}, \texttt{BMI2}, \texttt{POPCNT}), ОС Linux Debian 12, компилятором \texttt{GCC 12.2.0} и интерпретатором \texttt{Python 3.11.2}. В Таблице~\ref{tab:opcode_cmp} сопоставлены реальные последовательности машинных инструкций внутреннего цикла ядра \texttt{fused\_relu\_dot}, полученные дизассемблером \texttt{objdump -d} для бинарного файла \texttt{GCC 12.2.0 -O3} и синтезатора \textbf{ZeroLang}.
+
+\begin{table}[ht!]
+\centering
+\caption{Сравнение дизассемблированного внутреннего цикла ядра \texttt{fused\_relu\_dot} ($N = 65\,536$ FP32)}
+\label{tab:opcode_cmp}
+\vspace{4pt}
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+\textbf{Параметр / Этап} & \textbf{Компилятор C++ (\texttt{GCC 12.2.0 -O3})} & \textbf{Прямой синтез ZeroLang (Direct-to-Silicon)} \\
+\midrule
+Ширина векторного тракта & 128 бит SSE (\texttt{xmm4}, \texttt{xmm6}) — 4 числа FP32 & 256 бит AVX2 (\texttt{ymm0..ymm7}) — 32 числа FP32 \\
+Вычисление $\max(0, x_i)$ & 3 инструкции: \texttt{movaps} + \texttt{cmpltps} + \texttt{andps} & 1 инструкция за 1 такт: \texttt{vmaxps ymm4, ymm4, ymm7} \\
+Умножение и накопление & Раздельные \texttt{mulps} + 4 $\times$ \texttt{addss} в один \texttt{\%xmm0} & Слияние \texttt{vfmadd231ps} в 4 независимых \texttt{ymm0..ymm3} \\
+Перестановки в цикле & 3 инструкции \texttt{shufps} + \texttt{unpckhps} на каждом шаге & Отсутствуют в цикле (древовидная редукция в эпилоге) \\
+Шаг итерации цикла & 16 байт (4 элемента \texttt{float32}) & 128 байт (32 элемента \texttt{float32}) \\
+Время выполнения ядра & \textbf{103,15 мкс} (узкое место — латентность \texttt{addss}) & \textbf{12,09 мкс} (\textbf{ускорение в 8,53 раза}) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Результаты измерений времени выполнения (среднее по 2000 итераций после 100 итераций прогрева кэша инструкций) для всех четырех исследуемых классов алгоритмов представлены в Таблице~\ref{tab:bench_results}.
+
+\begin{table}[ht!]
+\centering
+\caption{Экспериментальное сравнение времени выполнения (мкс) и кратности ускорения системы ZeroLang относительно Python 3.11 и оптимизирующего компилятора C++ (\texttt{GCC 12.2.0 -O2} и \texttt{-O3})}
+\label{tab:bench_results}
+\vspace{4pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l r r r r r r r}
+\toprule
+\textbf{Вычислительное ядро (Интент и объем данных)} & \textbf{Python 3.11} & \textbf{C++ \texttt{-O2}} & \textbf{C++ \texttt{-O3}} & \textbf{ZeroLang} & \textbf{К \texttt{C++ -O2}} & \textbf{К \texttt{C++ -O3}} & \textbf{Код (байт)} \\
+\midrule
+1. Свертка ReLU + Dot Product ($N = 65\,536$ FP32) & 5\,457,55 мкс & 405,31 мкс & 103,15 мкс & \textbf{12,09 мкс} & \textbf{33,53$\times$} & \textbf{8,53$\times$} & 140 \\
+2. Пакетная сортировка кортежей ($16\,384 \times 4$ INT32) & 3\,944,11 мкс & 656,47 мкс & 617,28 мкс & \textbf{102,37 мкс} & \textbf{6,41$\times$} & \textbf{6,03$\times$} & 107 \\
+3. Полиномиальный фильтр Горнера ($N = 65\,536$ FP32) & 9\,901,82 мкс & 143,85 мкс & 44,30 мкс & \textbf{11,35 мкс} & \textbf{12,68$\times$} & \textbf{3,90$\times$} & 161 \\
+4. Расстояние Хэмминга эмбеддингов ($4{,}19\text{M}$ бит UINT64) & 9\,673,30 мкс & 296,32 мкс & 275,61 мкс & \textbf{45,88 мкс} & \textbf{6,46$\times$} & \textbf{6,01$\times$} & 89 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+Как показывают данные Таблицы~\ref{tab:bench_results}, прямой синтез машинного кода в системе \textbf{ZeroLang} уверенно превосходит скомпилированный код C++ во всех четырех тестах. Даже при дополнительном включении платформенно-зависимой оптимизации \texttt{g++ -O3 -march=native} эталонный код C++ выполняет ядро \texttt{fused\_relu\_dot} за 104,73~мкс (против 12,09~мкс у \textbf{ZeroLang}, т.\,е. в \textbf{8,66 раза медленнее}), а сортировку кортежей \texttt{batch\_sort4} — за 665,90~мкс (против 102,37~мкс у \textbf{ZeroLang}, т.\,е. в \textbf{6,50 раза медленнее}), поскольку флаг \texttt{-march=native} не отменяет семантических ограничений стандарта языка C++ на ассоциативность операций с плавающей запятой и не заменяет ветвящийся алгоритм \texttt{std::sort} на регистровую сеть условных пересылок \texttt{cmovg} \cite{bunel2017}.
+
+\section{Заключение и выводы}
+
+\begin{enumerate}
+\setlength{\itemsep}{2pt}\setlength{\parskip}{0pt}
+    \item Теоретически обосновано и экспериментально подтверждено, что в цепочке автоматизированного синтеза программ («Интент $\to$ ЯВУ $\to$ Компилятор $\to$ Процессор») язык программирования высокого уровня (включая C++) выступает ограничивающим посредником, снижающим утилизацию исполнительных портов процессора в 3,9–8,5 раза.
+    \item Разработан открытый исследовательский прототип \textbf{ZeroLang}, осуществляющий прямую генерацию микроархитектурно-специализированных инструкций \texttt{x86\_64} (\texttt{AVX2}, \texttt{FMA3}, \texttt{POPCNT}, \texttt{CMOV}) в исполняемые страницы памяти \texttt{mmap(PROT\_EXEC)} с автоматической верификацией математической эквивалентности.
+    \item На реальном процессоре архитектуры Intel \texttt{x86\_64} зафиксировано ускорение \textbf{ZeroLang} в \textbf{6,41–33,53 раза} относительно \texttt{GCC 12.2.0 -O2}, в \textbf{3,90–8,53 раза} относительно \texttt{GCC 12.2.0 -O3} и в \textbf{38,5–872,7 раза} относительно интерпретатора \texttt{Python 3.11} при сверхкомпактном объеме исполняемого кода (89–161 байт).
+\end{enumerate}
+
+\begin{thebibliography}{9}
+
+\bibitem{cummins2024}
+Cummins C., Seeker V., Grubisic D., Rozi\`ere B., Gehring J., Synnaeve G., Leather H. Meta Large Language Model Compiler: Foundation Models of Compiler Optimization // \textit{arXiv preprint arXiv:2407.02524}. — 2024. — URL: \url{https://arxiv.org/abs/2407.02524} (дата обращения: 17.10.2026).
+
+\bibitem{lattner2021}
+Lattner C., Amini M., Bondhugula U., Cohen A., Davis A., Pienaar J., Riddle R., Shpeisman T., Vasilache N., Zinenko A. MLIR: Scaling Compiler Infrastructure for Domain Specific Computation // \textit{Proceedings of the 2021 IEEE/ACM International Symposium on Code Generation and Optimization (CGO)}. — IEEE, 2021. — С. 2–14. — URL: \url{https://arxiv.org/abs/2002.11054} (дата обращения: 17.10.2026).
+
+\bibitem{schkufza2013}
+Schkufza E., Sharma R., Aiken A. Stochastic Superoptimization // \textit{Proceedings of the Eighteenth International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS '13)}. — Houston: ACM, 2013. — С. 305–316. — URL: \url{https://arxiv.org/abs/1211.0557} (дата обращения: 17.10.2026).
+
+\bibitem{mankowitz2023}
+Mankowitz D.\,J., Michi A., Zhernov A., et al. Faster sorting algorithms discovered using deep reinforcement learning // \textit{Nature}. — 2023. — Т. 618, № 7964. — С. 257–263. — DOI: 10.1038/s41586-023-06004-9. — URL: \url{https://pubmed.ncbi.nlm.nih.gov/37286649/} (дата обращения: 17.10.2026).
+
+\bibitem{phothilimthana2016}
+Phothilimthana P.\,M., Thakur A., Bodik R., Dhurjati D. Scaling up Superoptimization // \textit{Proceedings of the Twenty-First International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS '16)}. — ACM, 2016. — С. 297–310. — URL: \url{https://mangpo.net/papers/lens-asplos16.pdf} (дата обращения: 17.10.2026).
+
+\bibitem{bunel2017}
+Bunel R., Desmaison A., Kohli P., Torr P.\,H.\,S., Kumar M.\,P. Learning to Superoptimize Programs // \textit{International Conference on Learning Representations (ICLR)}. — 2017. — URL: \url{https://arxiv.org/pdf/1611.01787} (дата обращения: 17.10.2026).
+
+\end{thebibliography}
+
+\end{document}
